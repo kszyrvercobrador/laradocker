@@ -1,0 +1,62 @@
+version: "3"
+
+networks:
+  web:
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: laravel_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./apps/:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - php
+      - mysql
+      - redis
+    networks:
+      - web
+
+  mysql:
+    image: mysql:8
+    container_name: laravel_mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: laravel
+      SERVICE_NAME: mysql
+    networks:
+      - web
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_php
+    working_dir: /var/www
+    volumes:
+      - ./apps:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "9000:9000"
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    networks:
+      - web
+
+  redis:
+    image: redis:alpine
+    container_name: laravel_redis
+    tty: true
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis:/var/lib/redis
+    networks:
+      - web
